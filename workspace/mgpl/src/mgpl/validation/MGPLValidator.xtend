@@ -147,42 +147,181 @@ class MGPLValidator extends AbstractMGPLValidator {
 
 	@Check
 	def checkVar(Var it) {
-		/*TODO*/
+		//prüfen, ob Objekt/Variable deklariert ist
+		if (it instanceof MemberSelect || it instanceof ElementSelect){
+			return
+		} else {
+			if (it.isUndeclared){
+				val id = eClass.getEStructuralFeature(MGPLPackage.Literals.VAR__ID.name)
+				error('This Variable/Objekt is undeclared', id)	
+				}
+			}
 		
-		// prüfen, dass sämtliche Vorkommen von Variablen- oder Objektnamen deklaiert sind und wie es verwendet wird  (Aufg. 2. Bindungen)
-		
-		
-		
+		//prüfen ob als ein Objekt verwendet wird und werden darf
+		if (it.usedAsObject){
+			if (hasMembers(it)){
+				return
+			} else {
+				val id = eClass.getEStructuralFeature(MGPLPackage.Literals.VAR__ID.name)
+				error('This Variable is not an Object ', id)	
+			}
+		}
 	}
-
+ 	
+ 	def isAllowedAttribute(EObject it, String name){
+ 		val allowList = it.allowedAttributes
+		
+		for (allow:allowList){
+			if (longAttributeName(name).equals(allow)){
+                return true
+            }
+		}
+		return false
+ 	}
+ 	
+ 	
 	@Check
 	def checkAttributeAssignment(AttrAss it) {
-		/*TODO*/
 		
 		// prüfen, dass dieses Attribut für dieses Objekt erlaubt ist (Aufg. 2. Attribute)
+		val attrName = eClass.getEStructuralFeature(MGPLPackage.Literals.ATTR_ASS__NAME.name)
+		val name = eGet(attrName) as String
+		
+		if (!isAllowedAttribute(it.eContainer, name)){
+			error('This is not an allowed Attribute for this Object',attrName)
+		}
+		
 		// prüfen, dass dieses Attribut, das einen langen und einen kurzen Namen haben kann, nur einmal in diesem Objekt belegt wird (Aufg. 2. Attribute)
+		val listAttributes = it.eContainer.eContents
+		var String listAttributesString = ''
+		
+		for (variable:listAttributes){
+			if (variable instanceof AttrAss) {
+				listAttributesString += ' ' + variable.name + ' '
+			}
+			
+		}
+		
+		if (name.equals('r')){
+			if (listAttributesString.contains('radius')) error('No double attributes allowed', attrName)
+		} else if (name.equals('w')){
+			if (listAttributesString.contains('width')) error('No double attributes allowed', attrName)	
+		} else if (name.equals('h')){
+			if (listAttributesString.contains('height')) error('No double attributes allowed', attrName)
+		} else if (name.equals('radius')){
+			if (listAttributesString.contains(' r ')) error('No double attributes allowed', attrName)
+		} else if (name.equals('width')){
+			if (listAttributesString.contains(' w ')) error('No double attributes allowed', attrName)	
+		} else if (name.equals('height')){
+			if (listAttributesString.contains(' h ')) error('No double attributes allowed', attrName)
+		}
+		
+		
 		// prüfen, dass das Grafikobjekt-Attribut animation_block mit dem Namen eines Animation-Handlers belegt wird (Aufg. 2. Bindungen)
-		// prüfen, dass der Animation-Handler einen passenden Typ hat (Aufg. 2. Bindungen)
+		val attrValue = eClass.getEStructuralFeature(MGPLPackage.Literals.ATTR_ASS__VALUE.name)
+		val value = eGet(attrValue)
+		
+		if (name.equals('animation_block')){
+			if (value instanceof Var){
+				val anim = value.id
+				val obj = it.eContainer
+				if (anim instanceof AnimBlock){
+					// prüfen, dass der Animation-Handler einen passenden Typ hat (Aufg. 2. Bindungen)	
+					val animType = anim.param.type
+					if (!(animType.equals('circle')||animType.equals('rectangle')||animType.equals('triangle'))){
+						error('not accepted type for an Animation-Handler', attrName)
+					}
+					if (obj instanceof ObjDecl){
+						if (!(obj.type.equals(animType))){
+							error('Animation-Handler must have same type as Object: '+ obj.type, attrName)
+						}
+					}
+				} else {
+					error('This is no animation handler', attrValue)
+				}
+			} else error('This is no animation handler', attrValue)
+		}
+			
+		
 		// prüfen, dass Game-Attribute nur mit konstanten Zahlen belegt werden (Aufg. 2. Attribute)
+		if (it.eContainer instanceof Prog){
+			if (!(it.value instanceof NumberLiteral)) {
+        		error( "Not a NumberLiteral", attrValue )
+        	}
+		}
+		
 		// prüfen, dass das Game-Attribut speed mit einem Wert zwischen 0 und 100 belegt wird (Aufg. 2. Attribute)
+		
+        
+		if (name.equals('speed')) {
+			var speedValue = 0
+			if (it.value instanceof NumberLiteral) {
+            	speedValue = (it.value as NumberLiteral).value
+        	} else { 
+        		error( "Not a NumberLiteral", attrValue )
+        	}
+            if (speedValue <= 0 || 100 <= speedValue) {
+                error( "speed outside of valid range", attrValue)
+            }
+        }
+		
 		
 	}
 
 	@Check
 	def checkMemberName(MemberSelect it) {
-		/*TODO*/
 		
 		//prüfen, ob ein verwendetes Attribut für das jeweilige Objekt erlaubt ist (Aufg. 2. Bindungen)
+		
+		val memberName = eClass.getEStructuralFeature(MGPLPackage.Literals.MEMBER_SELECT__MEMBER_NAME.name)
+		val name = eGet(memberName) as String
+		var obj = it.variable
+				if (obj instanceof ElementSelect){
+					obj = obj.variable
+				}
+		val objId = obj.id
+		if (!isAllowedAttribute(objId, name)){
+			error('This is not an allowed Attribute for this Object',memberName)
+		}
 		
 	}
 
 	@Check
 	def checkAnimation_blockAssignment(AssStmt it) {
-		/*TODO*/
-		
 		// prüfen, dass das Attribut animation_block in einer Zuweisungsanweisung mit dem Namen eines Animation-Handlers 
 		// belegt wird und dass dieser einen passenden Typ hat  (Aufg. 2. Bindungen)
 		// Bsp.: c.animation_block = a[3] ist unzulässig; richtig: c.animation_block = lead_alien_animate
+		val assVar = eClass.getEStructuralFeature(MGPLPackage.Literals.ASS_STMT__VARIABLE.name)
+		val variable = eGet(assVar)
+		val assValue = eClass.getEStructuralFeature(MGPLPackage.Literals.ASS_STMT__EXPRESSION.name)
+		val value = eGet(assValue)
+		if (variable instanceof MemberSelect){
+			if (variable.memberName.equals('animation_block')){
+				if (value instanceof Var){
+				val anim = value.id
+				var obj = variable.variable
+				if (obj instanceof ElementSelect){
+					obj = obj.variable
+				}
+				val objId = obj.id
+				if (anim instanceof AnimBlock){
+					val animType = anim.param.type
+					if (!(animType.equals('circle')||animType.equals('rectangle')||animType.equals('triangle'))){
+						error('not accepted type for an Animation-Handler', assVar)
+					}
+					if (objId instanceof ObjDecl){
+						if (!(objId.type.equals(animType))){
+							error('Animation-Handler must have same type as Object: '+ objId.type, assVar)
+						}
+					}
+				} else {
+					error('This is no animation handler', assValue)
+				}
+			}
+		} 
+	}
+
+		
 		
 	}
 	
