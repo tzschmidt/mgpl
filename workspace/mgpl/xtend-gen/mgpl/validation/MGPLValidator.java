@@ -25,6 +25,7 @@ import mgpl.mGPL.Prog;
 import mgpl.mGPL.Touches;
 import mgpl.mGPL.Var;
 import mgpl.mGPL.VarDecl;
+import org.eclipse.emf.common.util.EList;
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.emf.ecore.EStructuralFeature;
 import org.eclipse.xtext.validation.Check;
@@ -236,22 +237,213 @@ public class MGPLValidator extends AbstractMGPLValidator {
    * ##### Ihre Implementierung der @Check Funktion für Aufgabe 2.
    */
   @Check
-  public Object checkVar(final Var it) {
-    return null;
+  public void checkVar(final Var it) {
+    if (((it instanceof MemberSelect) || (it instanceof ElementSelect))) {
+      return;
+    } else {
+      boolean _isUndeclared = this.isUndeclared(it);
+      if (_isUndeclared) {
+        final EStructuralFeature id = it.eClass().getEStructuralFeature(MGPLPackage.Literals.VAR__ID.getName());
+        this.error("This Variable/Objekt is undeclared", id);
+      }
+    }
+    boolean _usedAsObject = this.usedAsObject(it);
+    if (_usedAsObject) {
+      boolean _hasMembers = this.hasMembers(it);
+      if (_hasMembers) {
+        return;
+      } else {
+        final EStructuralFeature id_1 = it.eClass().getEStructuralFeature(MGPLPackage.Literals.VAR__ID.getName());
+        this.error("This Variable is not an Object ", id_1);
+      }
+    }
+  }
+
+  public boolean isAllowedAttribute(final EObject it, final String name) {
+    final List<String> allowList = this.allowedAttributes(it);
+    for (final String allow : allowList) {
+      boolean _equals = Common.longAttributeName(name).equals(allow);
+      if (_equals) {
+        return true;
+      }
+    }
+    return false;
   }
 
   @Check
-  public Object checkAttributeAssignment(final AttrAss it) {
-    return null;
+  public void checkAttributeAssignment(final AttrAss it) {
+    final EStructuralFeature attrName = it.eClass().getEStructuralFeature(MGPLPackage.Literals.ATTR_ASS__NAME.getName());
+    Object _eGet = it.eGet(attrName);
+    final String name = ((String) _eGet);
+    boolean _isAllowedAttribute = this.isAllowedAttribute(it.eContainer(), name);
+    boolean _not = (!_isAllowedAttribute);
+    if (_not) {
+      this.error("This is not an allowed Attribute for this Object", attrName);
+    }
+    final EList<EObject> listAttributes = it.eContainer().eContents();
+    String listAttributesString = "";
+    for (final EObject variable : listAttributes) {
+      if ((variable instanceof AttrAss)) {
+        String _listAttributesString = listAttributesString;
+        String _name = ((AttrAss)variable).getName();
+        String _plus = (" " + _name);
+        String _plus_1 = (_plus + " ");
+        listAttributesString = (_listAttributesString + _plus_1);
+      }
+    }
+    boolean _equals = name.equals("r");
+    if (_equals) {
+      boolean _contains = listAttributesString.contains("radius");
+      if (_contains) {
+        this.error("No double attributes allowed", attrName);
+      }
+    } else {
+      boolean _equals_1 = name.equals("w");
+      if (_equals_1) {
+        boolean _contains_1 = listAttributesString.contains("width");
+        if (_contains_1) {
+          this.error("No double attributes allowed", attrName);
+        }
+      } else {
+        boolean _equals_2 = name.equals("h");
+        if (_equals_2) {
+          boolean _contains_2 = listAttributesString.contains("height");
+          if (_contains_2) {
+            this.error("No double attributes allowed", attrName);
+          }
+        } else {
+          boolean _equals_3 = name.equals("radius");
+          if (_equals_3) {
+            boolean _contains_3 = listAttributesString.contains(" r ");
+            if (_contains_3) {
+              this.error("No double attributes allowed", attrName);
+            }
+          } else {
+            boolean _equals_4 = name.equals("width");
+            if (_equals_4) {
+              boolean _contains_4 = listAttributesString.contains(" w ");
+              if (_contains_4) {
+                this.error("No double attributes allowed", attrName);
+              }
+            } else {
+              boolean _equals_5 = name.equals("height");
+              if (_equals_5) {
+                boolean _contains_5 = listAttributesString.contains(" h ");
+                if (_contains_5) {
+                  this.error("No double attributes allowed", attrName);
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+    final EStructuralFeature attrValue = it.eClass().getEStructuralFeature(MGPLPackage.Literals.ATTR_ASS__VALUE.getName());
+    final Object value = it.eGet(attrValue);
+    boolean _equals_6 = name.equals("animation_block");
+    if (_equals_6) {
+      if ((value instanceof Var)) {
+        final AllDecls anim = ((Var)value).getId();
+        final EObject obj = it.eContainer();
+        if ((anim instanceof AnimBlock)) {
+          final String animType = ((AnimBlock)anim).getParam().getType();
+          boolean _not_1 = (!((animType.equals("circle") || animType.equals("rectangle")) || animType.equals("triangle")));
+          if (_not_1) {
+            this.error("Not accepted type for an Animation-Handler", attrName);
+          }
+          if ((obj instanceof ObjDecl)) {
+            boolean _equals_7 = ((ObjDecl)obj).getType().equals(animType);
+            boolean _not_2 = (!_equals_7);
+            if (_not_2) {
+              String _type = ((ObjDecl)obj).getType();
+              String _plus_2 = ("Animation-Handler must have same type as Object: " + _type);
+              this.error(_plus_2, attrName);
+            }
+          }
+        } else {
+          this.error("Animation-Handler expected", attrValue);
+        }
+      } else {
+        this.error("Animation-Handler expected", attrValue);
+      }
+    }
+    EObject _eContainer = it.eContainer();
+    if ((_eContainer instanceof Prog)) {
+      Expr _value = it.getValue();
+      boolean _not_3 = (!(_value instanceof NumberLiteral));
+      if (_not_3) {
+        this.error("Constant Integer expected", attrValue);
+      }
+    }
+    boolean _equals_8 = name.equals("speed");
+    if (_equals_8) {
+      int speedValue = 0;
+      Expr _value_1 = it.getValue();
+      if ((_value_1 instanceof NumberLiteral)) {
+        Expr _value_2 = it.getValue();
+        speedValue = ((NumberLiteral) _value_2).getValue();
+      } else {
+        this.error("Constant Integer expected", attrValue);
+      }
+      if (((speedValue <= 0) || (100 <= speedValue))) {
+        this.error("Value out of valid range (0, 100)", attrValue);
+      }
+    }
   }
 
   @Check
-  public Object checkMemberName(final MemberSelect it) {
-    return null;
+  public void checkMemberName(final MemberSelect it) {
+    final EStructuralFeature memberName = it.eClass().getEStructuralFeature(MGPLPackage.Literals.MEMBER_SELECT__MEMBER_NAME.getName());
+    Object _eGet = it.eGet(memberName);
+    final String name = ((String) _eGet);
+    Var obj = it.getVariable();
+    if ((obj instanceof ElementSelect)) {
+      obj = ((ElementSelect)obj).getVariable();
+    }
+    final AllDecls objId = obj.getId();
+    boolean _isAllowedAttribute = this.isAllowedAttribute(objId, name);
+    boolean _not = (!_isAllowedAttribute);
+    if (_not) {
+      this.error("This is not an allowed Attribute for this Object", memberName);
+    }
   }
 
   @Check
-  public Object checkAnimation_blockAssignment(final AssStmt it) {
-    return null;
+  public void checkAnimation_blockAssignment(final AssStmt it) {
+    final EStructuralFeature assVar = it.eClass().getEStructuralFeature(MGPLPackage.Literals.ASS_STMT__VARIABLE.getName());
+    final Object variable = it.eGet(assVar);
+    final EStructuralFeature assValue = it.eClass().getEStructuralFeature(MGPLPackage.Literals.ASS_STMT__EXPRESSION.getName());
+    final Object value = it.eGet(assValue);
+    if ((variable instanceof MemberSelect)) {
+      boolean _equals = ((MemberSelect)variable).getMemberName().equals("animation_block");
+      if (_equals) {
+        if ((value instanceof Var)) {
+          final AllDecls anim = ((Var)value).getId();
+          Var obj = ((MemberSelect)variable).getVariable();
+          if ((obj instanceof ElementSelect)) {
+            obj = ((ElementSelect)obj).getVariable();
+          }
+          final AllDecls objId = obj.getId();
+          if ((anim instanceof AnimBlock)) {
+            final String animType = ((AnimBlock)anim).getParam().getType();
+            boolean _not = (!((animType.equals("circle") || animType.equals("rectangle")) || animType.equals("triangle")));
+            if (_not) {
+              this.error("Not accepted type for an Animation-Handler", assVar);
+            }
+            if ((objId instanceof ObjDecl)) {
+              boolean _equals_1 = ((ObjDecl)objId).getType().equals(animType);
+              boolean _not_1 = (!_equals_1);
+              if (_not_1) {
+                String _type = ((ObjDecl)objId).getType();
+                String _plus = ("Animation-Handler must have same type as Object: " + _type);
+                this.error(_plus, assVar);
+              }
+            }
+          } else {
+            this.error("Animation-Handler expected", assValue);
+          }
+        }
+      }
+    }
   }
 }

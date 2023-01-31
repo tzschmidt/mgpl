@@ -23,8 +23,6 @@ import mgpl.mGPL.VarDecl
 import org.eclipse.emf.ecore.EObject
 import org.eclipse.xtext.validation.Check
 
-import mgpl.mGPL.Decl
-
 import static extension mgpl.Common.*
 
 /**
@@ -168,6 +166,7 @@ class MGPLValidator extends AbstractMGPLValidator {
 		}
 	}
  	
+ 	// Hilfsfunktion
  	def isAllowedAttribute(EObject it, String name){
  		val allowList = it.allowedAttributes
 		
@@ -183,7 +182,7 @@ class MGPLValidator extends AbstractMGPLValidator {
 	@Check
 	def checkAttributeAssignment(AttrAss it) {
 		
-		// prüfen, dass dieses Attribut für dieses Objekt erlaubt ist (Aufg. 2. Attribute)
+		// prüfen, dass Attribut für Objekt erlaubt ist (Aufg. 2. Attribute)
 		val attrName = eClass.getEStructuralFeature(MGPLPackage.Literals.ATTR_ASS__NAME.name)
 		val name = eGet(attrName) as String
 		
@@ -191,7 +190,7 @@ class MGPLValidator extends AbstractMGPLValidator {
 			error('This is not an allowed Attribute for this Object',attrName)
 		}
 		
-		// prüfen, dass dieses Attribut, das einen langen und einen kurzen Namen haben kann, nur einmal in diesem Objekt belegt wird (Aufg. 2. Attribute)
+		// prüfen, dass Attribut, das einen langen und einen kurzen Namen haben kann, nur einmal in Objekt belegt wird (Aufg. 2. Attribute)
 		val listAttributes = it.eContainer.eContents
 		var String listAttributesString = ''
 		
@@ -217,7 +216,7 @@ class MGPLValidator extends AbstractMGPLValidator {
 		}
 		
 		
-		// prüfen, dass das Grafikobjekt-Attribut animation_block mit dem Namen eines Animation-Handlers belegt wird (Aufg. 2. Bindungen)
+		// prüfen, dass Grafikobjekt-Attribut animation_block mit dem Namen eines Animation-Handlers belegt wird (Aufg. 2. Bindungen)
 		val attrValue = eClass.getEStructuralFeature(MGPLPackage.Literals.ATTR_ASS__VALUE.name)
 		val value = eGet(attrValue)
 		
@@ -229,7 +228,7 @@ class MGPLValidator extends AbstractMGPLValidator {
 					// prüfen, dass der Animation-Handler einen passenden Typ hat (Aufg. 2. Bindungen)	
 					val animType = anim.param.type
 					if (!(animType.equals('circle')||animType.equals('rectangle')||animType.equals('triangle'))){
-						error('not accepted type for an Animation-Handler', attrName)
+						error('Not accepted type for an Animation-Handler', attrName)
 					}
 					if (obj instanceof ObjDecl){
 						if (!(obj.type.equals(animType))){
@@ -237,16 +236,16 @@ class MGPLValidator extends AbstractMGPLValidator {
 						}
 					}
 				} else {
-					error('This is no animation handler', attrValue)
+					error('Animation-Handler expected', attrValue)
 				}
-			} else error('This is no animation handler', attrValue)
+			} else error('Animation-Handler expected', attrValue)
 		}
 			
 		
 		// prüfen, dass Game-Attribute nur mit konstanten Zahlen belegt werden (Aufg. 2. Attribute)
 		if (it.eContainer instanceof Prog){
 			if (!(it.value instanceof NumberLiteral)) {
-        		error( "Not a NumberLiteral", attrValue )
+        		error( "Constant Integer expected", attrValue )
         	}
 		}
 		
@@ -258,10 +257,10 @@ class MGPLValidator extends AbstractMGPLValidator {
 			if (it.value instanceof NumberLiteral) {
             	speedValue = (it.value as NumberLiteral).value
         	} else { 
-        		error( "Not a NumberLiteral", attrValue )
+        		error( "Constant Integer expected", attrValue )
         	}
             if (speedValue <= 0 || 100 <= speedValue) {
-                error( "speed outside of valid range", attrValue)
+                error( "Value out of valid range (0, 100)", attrValue)
             }
         }
 		
@@ -307,7 +306,7 @@ class MGPLValidator extends AbstractMGPLValidator {
 				if (anim instanceof AnimBlock){
 					val animType = anim.param.type
 					if (!(animType.equals('circle')||animType.equals('rectangle')||animType.equals('triangle'))){
-						error('not accepted type for an Animation-Handler', assVar)
+						error('Not accepted type for an Animation-Handler', assVar)
 					}
 					if (objId instanceof ObjDecl){
 						if (!(objId.type.equals(animType))){
@@ -315,7 +314,7 @@ class MGPLValidator extends AbstractMGPLValidator {
 						}
 					}
 				} else {
-					error('This is no animation handler', assValue)
+					error('Animation-Handler expected', assValue)
 				}
 			}
 		} 
